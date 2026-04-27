@@ -1,34 +1,26 @@
 "use client";
 
-import { usePaymentStore } from "@/hooks/use-payment-store";
+import { PaymentForm } from "@/components/payment-form";
 
-/**
- * Phase 1 shell: confirms Zustand wiring and gives a single place for the payment UI to grow.
- */
 export function PaymentAppShell() {
-  const lifecycleStatus = usePaymentStore((s) => s.lifecycleStatus);
-
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Payflow gateway
-        </h1>
-        <p className="text-sm text-zinc-600">
-          Payment form, mock gateway, and history will be added in later phases.
-        </p>
-      </header>
-      <section
-        className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700"
-        aria-label="Store status (Phase 1)"
-      >
-        <p>
-          <span className="font-medium text-zinc-900">Lifecycle (store):</span>{" "}
-          <code className="rounded bg-white px-1.5 py-0.5 text-xs ring-1 ring-zinc-200">
-            {lifecycleStatus}
-          </code>
-        </p>
-      </section>
-    </main>
+    <div className="min-h-full bg-gradient-to-b from-zinc-100 via-white to-teal-50/40">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-10 sm:px-6 lg:py-14">
+        <header className="max-w-2xl space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">
+            Checkout
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+            Pay with confidence
+          </h1>
+          <p className="text-base leading-relaxed text-zinc-600">
+            A focused payment experience—clear validation, a live card preview, and
+            a simulated gateway. No third-party checkout SDK required.
+          </p>
+        </header>
+
+        <PaymentForm />
+      </main>
+    </div>
   );
 }

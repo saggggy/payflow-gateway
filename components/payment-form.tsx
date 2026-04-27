@@ -6,6 +6,7 @@ import { CardInput } from "@/components/card-input";
 import { CardPreview } from "@/components/card-preview";
 import { PaymentResultPanel } from "@/components/payment-result-panel";
 import { usePaymentForm } from "@/hooks/use-payment-form";
+import { PAY_CLIENT_TIMEOUT_MS } from "@/utils/execute-payment-request";
 import { detectCardType } from "@/utils/card";
 
 const amountInputClass =
@@ -17,6 +18,8 @@ export function PaymentForm() {
   const {
     lifecycleStatus,
     statusSubtitle,
+    lastPayErrorSource,
+    activeTransactionId,
     cardholderName,
     setCardholderName,
     setCardNumberFromRaw,
@@ -63,6 +66,8 @@ export function PaymentForm() {
           <PaymentResultPanel
             status={lifecycleStatus}
             subtitle={statusSubtitle}
+            errorSource={lastPayErrorSource}
+            transactionId={activeTransactionId}
             primaryRef={primaryResultRef}
             onNewPayment={resetFormAndSession}
           />
@@ -82,8 +87,8 @@ export function PaymentForm() {
                   Processing payment…
                 </p>
                 <p className="max-w-xs text-xs text-zinc-500">
-                  Securely contacting the mock gateway. This usually takes a couple
-                  of seconds.
+                  Securely contacting the mock gateway. Requests cancel after{" "}
+                  {PAY_CLIENT_TIMEOUT_MS / 1000} seconds if there is no response.
                 </p>
               </div>
             ) : null}
@@ -104,6 +109,14 @@ export function PaymentForm() {
                   All fields are validated locally. Card data is sent only to this
                   demo&apos;s mock API.
                 </p>
+                {activeTransactionId ? (
+                  <p className="mt-3 break-all font-mono text-[11px] leading-relaxed text-zinc-400">
+                    <span className="font-sans font-medium text-zinc-500">
+                      Session reference:{" "}
+                    </span>
+                    {activeTransactionId}
+                  </p>
+                ) : null}
               </div>
 
               <div className="grid gap-5 sm:grid-cols-[minmax(0,140px)_1fr] sm:items-end">

@@ -4,9 +4,13 @@ import type { RefObject } from "react";
 
 import type { PaymentStatus } from "@/types";
 
+type PayErrorSource = "none" | "network" | "gateway" | "timeout";
+
 interface PaymentResultPanelProps {
   status: Extract<PaymentStatus, "success" | "failed" | "timeout">;
   subtitle: string | null;
+  errorSource: PayErrorSource;
+  transactionId: string | null;
   primaryRef: RefObject<HTMLButtonElement | null>;
   onNewPayment: () => void;
 }
@@ -14,6 +18,8 @@ interface PaymentResultPanelProps {
 export function PaymentResultPanel({
   status,
   subtitle,
+  errorSource,
+  transactionId,
   primaryRef,
   onNewPayment,
 }: PaymentResultPanelProps) {
@@ -43,8 +49,21 @@ export function PaymentResultPanel({
       >
         {title}
       </h2>
+      {status === "failed" && errorSource === "network" ? (
+        <p className="mt-3 inline-flex rounded-lg bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-900 ring-1 ring-rose-200">
+          Network issue — not a card decline
+        </p>
+      ) : null}
       {subtitle ? (
         <p className="mt-3 text-sm leading-relaxed text-zinc-700">{subtitle}</p>
+      ) : null}
+      {transactionId ? (
+        <p className="mt-4 break-all font-mono text-xs text-zinc-500">
+          <span className="font-sans font-medium text-zinc-600">
+            Transaction ID:{" "}
+          </span>
+          {transactionId}
+        </p>
       ) : null}
       <button
         ref={primaryRef}

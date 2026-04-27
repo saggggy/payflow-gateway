@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { CurrencyCode, PaymentPayload } from "@/types";
 
 import { usePaymentStore } from "@/hooks/use-payment-store";
-import { postPayment, type PayClientResult } from "@/utils/pay-api-client";
-import { formatAmountForDisplay } from "@/utils/amount";
+import { executePaymentRequest } from "@/utils/execute-payment-request";
 import { formatCardDisplay, stripNonDigits } from "@/utils/card";
 import { formatExpiryInput } from "@/utils/expiry";
+import { mapPayClientResultToLifecycle } from "@/utils/map-pay-result-to-lifecycle";
 import {
   buildDigitsFromFormattedPan,
   splitExpiryForPayload,
@@ -17,41 +17,16 @@ import {
   type PaymentFieldValues,
 } from "@/utils/validate-payment-fields";
 
-const MIN_PROCESSING_MS = 2000;
-const CLIENT_TIMEOUT_MS = 6000;
-
-function mapResultToLifecycle(
-  result: PayClientResult,
-): { status: "success" | "failed" | "timeout"; subtitle: string | null } {
-  switch (result.kind) {
-    case "success":
-      return {
-        status: "success",
-        subtitle: `Paid ${formatAmountForDisplay(result.body.amount, result.body.currency)}.`,
-      };
-    case "failure":
-      return { status: "failed", subtitle: result.body.reason };
-    case "timeout":
-      return {
-        status: "timeout",
-        subtitle: "The gateway did not respond in time. You were not charged.",
-      };
-    case "network":
-      return { status: "failed", subtitle: result.message };
-    case "invalid_json":
-      return { status: "failed", subtitle: result.message };
-    case "bad_status":
-      return { status: "failed", subtitle: result.message };
-  }
-}
-
 export function usePaymentForm() {
   const lifecycleStatus = usePaymentStore((s) => s.lifecycleStatus);
   const statusSubtitle = usePaymentStore((s) => s.statusSubtitle);
+  const lastPayErrorSource = usePaymentStore((s) => s.lastPayErrorSource);
+  const activeTransactionId = usePaymentStore((s) => s.activeTransactionId);
   const setLifecycleStatus = usePaymentStore((s) => s.setLifecycleStatus);
+  const ensureActiveTransactionId = usePaymentStore(
+    (s) => s.ensureActiveTransactionId,
+  );
   const resetPaymentSession = usePaymentStore((s) => s.resetPaymentSession);
-
-  const transactionIdRef = useRef<string | null>(null);
 
   const [cardholderName, setCardholderName] = useState("");
   const [cardNumberFormatted, setCardNumberFormatted] = useState("");
@@ -64,6 +39,12 @@ export function usePaymentForm() {
     {},
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (lifecycleStatus === "idle" && activeTransactionId === null) {
+      ensureActiveTransactionId();
+    }
+  }, [lifecycleStatus, activeTransactionId, ensureActiveTransactionId]);
 
   const cardNumberDigits = useMemo(
     () => buildDigitsFromFormattedPan(cardNumberFormatted),
@@ -114,7 +95,6 @@ export function usePaymentForm() {
   );
 
   const resetFormAndSession = useCallback(() => {
-    transactionIdRef.current = null;
     setCardholderName("");
     setCardNumberFormatted("");
     setExpiryRaw("");
@@ -130,14 +110,11 @@ export function usePaymentForm() {
     setIsSubmitting(true);
     setLifecycleStatus("processing", null);
 
-    if (transactionIdRef.current === null) {
-      transactionIdRef.current = crypto.randomUUID();
-    }
-    const transactionId = transactionIdRef.current;
+    const transactionId = ensureActiveTransactionId();
 
     const expiryParts = splitExpiryForPayload(expiryRaw);
     if (!expiryParts) {
-      setLifecycleStatus("failed", "Invalid expiry.");
+      setLifecycleStatus("failed", "Invalid expiry.", "gateway");
       setIsSubmitting(false);
       return;
     }
@@ -153,25 +130,21 @@ export function usePaymentForm() {
       cvv: cvv.trim(),
     };
 
-    const controller = new AbortController();
-    const abortTimer = window.setTimeout(() => {
-      controller.abort();
-    }, CLIENT_TIMEOUT_MS);
     try {
-      const payPromise = postPayment(payload, controller.signal);
-      const minUiPromise = new Promise<void>((resolve) => {
-        window.setTimeout(resolve, MIN_PROCESSING_MS);
-      });
-      const [payResult] = await Promise.all([payPromise, minUiPromise]);
-      const mapped = mapResultToLifecycle(payResult);
-      setLifecycleStatus(mapped.status, mapped.subtitle);
+      const payResult = await executePaymentRequest(payload);
+      const mapped = mapPayClientResultToLifecycle(payResult);
+      setLifecycleStatus(
+        mapped.lifecycleStatus,
+        mapped.statusSubtitle,
+        mapped.errorSource,
+      );
     } catch {
       setLifecycleStatus(
         "failed",
         "Something went wrong. Please try again in a moment.",
+        "gateway",
       );
     } finally {
-      window.clearTimeout(abortTimer);
       setIsSubmitting(false);
     }
   }, [
@@ -181,6 +154,7 @@ export function usePaymentForm() {
     currency,
     cvv,
     expiryRaw,
+    ensureActiveTransactionId,
     isFormValid,
     isSubmitting,
     setLifecycleStatus,
@@ -198,6 +172,8 @@ export function usePaymentForm() {
   return {
     lifecycleStatus,
     statusSubtitle,
+    lastPayErrorSource,
+    activeTransactionId,
     cardholderName,
     setCardholderName,
     cardNumberFormatted,

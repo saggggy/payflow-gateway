@@ -1,9 +1,5 @@
-import Image from "next/image";
+import { PaymentAppShell } from "@/components/payment-app-shell";
 
 export default function Home() {
-  return (
-    <div>
-      <h1>Hello</h1>
-    </div>
-  );
+  return <PaymentAppShell />;
 }

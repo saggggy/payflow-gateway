@@ -1,5 +1,13 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Payment gateway assignment
+
+Frontend payment flow (form, mock `/api/pay`, lifecycle, retries, history) is built in phases. **Phase 1** adds folder layout (`components/`, `hooks/`, `utils/`, `types/`, `app/api/pay/`), shared TypeScript types, a Zustand store skeleton, and a stub `POST /api/pay` route.
+
+### State management
+
+This project uses **Zustand** for global payment and history state. It keeps boilerplate small compared to Redux Toolkit while still satisfying the assignment’s requirement for a dedicated store for lifecycle, transaction history, and shared UI state; local form state can stay in `useState` in later phases.
+
 ## Getting Started
 
 First, run the development server:

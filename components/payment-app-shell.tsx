@@ -1,6 +1,7 @@
 "use client";
 
 import { PaymentForm } from "@/components/payment-form";
+import { TransactionHistorySection } from "@/components/transaction-history-section";
 
 export function PaymentAppShell() {
   return (
@@ -14,12 +15,14 @@ export function PaymentAppShell() {
             Pay with confidence
           </h1>
           <p className="text-base leading-relaxed text-zinc-600">
-            A focused payment experience—clear validation, a live card preview, and
-            a simulated gateway. No third-party checkout SDK required.
+            A focused payment experience—clear validation, a live card preview, a
+            simulated gateway, and a little ledger that remembers what happened.
+            No third-party checkout SDK required.
           </p>
         </header>
 
         <PaymentForm />
+        <TransactionHistorySection />
       </main>
     </div>
   );

@@ -4,12 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { CurrencyCode, PaymentPayload } from "@/types";
 
+import type { TerminalPaymentOutcome } from "@/hooks/use-payment-store";
 import { usePaymentStore } from "@/hooks/use-payment-store";
 import { executePaymentRequest } from "@/utils/execute-payment-request";
 import { formatCardDisplay, stripNonDigits } from "@/utils/card";
 import { formatExpiryInput } from "@/utils/expiry";
-import { mapPayClientResultToLifecycle } from "@/utils/map-pay-result-to-lifecycle";
 import { fieldErrorsForTouchedOnly } from "@/utils/field-errors-for-touched";
+import { mapPayClientResultToLifecycle } from "@/utils/map-pay-result-to-lifecycle";
 import {
   buildDigitsFromFormattedPan,
   splitExpiryForPayload,
@@ -110,7 +111,21 @@ export function usePaymentForm() {
 
     const expiryParts = splitExpiryForPayload(expiryRaw);
     if (!expiryParts) {
-      setLifecycleStatus("failed", "Invalid expiry.", "gateway");
+      setLifecycleStatus(
+        "failed",
+        "That expiry does not look quite right yet — give MM/YY another go.",
+        "gateway",
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!usePaymentStore.getState().beginPayAttempt()) {
+      setLifecycleStatus(
+        "failed",
+        "This payment reference already used every try we allow. Start a new payment when you are ready.",
+        "gateway",
+      );
       setIsSubmitting(false);
       return;
     }
@@ -134,12 +149,34 @@ export function usePaymentForm() {
         mapped.statusSubtitle,
         mapped.errorSource,
       );
+
+      const outcome = mapped.lifecycleStatus as TerminalPaymentOutcome;
+      const failureSummary =
+        outcome === "success" ? null : mapped.statusSubtitle;
+
+      usePaymentStore.getState().recordTerminalPayment({
+        transactionId,
+        amount: payload.amount,
+        currency: payload.currency,
+        outcome,
+        attemptOrdinal: usePaymentStore.getState().payAttemptsUsed,
+        failureSummary,
+      });
     } catch {
       setLifecycleStatus(
         "failed",
-        "Something went wrong. Please try again in a moment.",
+        "Something unexpected happened on our side. Give it another go in a moment.",
         "gateway",
       );
+      usePaymentStore.getState().recordTerminalPayment({
+        transactionId,
+        amount: payload.amount,
+        currency: payload.currency,
+        outcome: "failed",
+        attemptOrdinal: usePaymentStore.getState().payAttemptsUsed,
+        failureSummary:
+          "Something unexpected happened on our side. Give it another go in a moment.",
+      });
     } finally {
       setIsSubmitting(false);
     }

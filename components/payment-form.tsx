@@ -8,7 +8,9 @@ import { CurrencyAmountFields } from "@/components/currency-amount-fields";
 import { PaymentResultPanel } from "@/components/payment-result-panel";
 import { ProcessingOverlay } from "@/components/processing-overlay";
 import { usePaymentForm } from "@/hooks/use-payment-form";
+import { usePaymentStore } from "@/hooks/use-payment-store";
 import { detectCardType } from "@/utils/card";
+import { MAX_PAY_ATTEMPTS_PER_TRANSACTION } from "@/utils/transaction-history-storage";
 
 function hasCompleteExpiry(expiryRaw: string) {
   return expiryRaw.replace(/\D/g, "").length >= 4;
@@ -16,8 +18,11 @@ function hasCompleteExpiry(expiryRaw: string) {
 
 export function PaymentForm() {
   const primaryResultRef = useRef<HTMLButtonElement>(null);
+  const retryResultRef = useRef<HTMLButtonElement>(null);
 
   const form = usePaymentForm();
+  const payAttemptsUsed = usePaymentStore((s) => s.payAttemptsUsed);
+  const prepareRetry = usePaymentStore((s) => s.prepareRetry);
 
   const schemeOnCard = detectCardType(form.cardNumberDigits);
   const expiryForPreview = hasCompleteExpiry(form.expiryRaw)
@@ -29,13 +34,21 @@ export function PaymentForm() {
     form.lifecycleStatus === "failed" ||
     form.lifecycleStatus === "timeout";
 
+  const canTryAgain =
+    (form.lifecycleStatus === "failed" || form.lifecycleStatus === "timeout") &&
+    payAttemptsUsed < MAX_PAY_ATTEMPTS_PER_TRANSACTION;
+
   useEffect(() => {
     if (!isFinished) return;
     const frame = requestAnimationFrame(() => {
-      primaryResultRef.current?.focus();
+      if (canTryAgain) {
+        retryResultRef.current?.focus();
+      } else {
+        primaryResultRef.current?.focus();
+      }
     });
     return () => cancelAnimationFrame(frame);
-  }, [isFinished, form.lifecycleStatus]);
+  }, [isFinished, canTryAgain, form.lifecycleStatus]);
 
   return (
     <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] lg:gap-14">
@@ -52,8 +65,13 @@ export function PaymentForm() {
             subtitle={form.statusSubtitle}
             errorSource={form.lastPayErrorSource}
             transactionId={form.activeTransactionId}
-            primaryRef={primaryResultRef}
+            attemptsUsed={payAttemptsUsed}
+            maxAttempts={MAX_PAY_ATTEMPTS_PER_TRANSACTION}
+            canTryAgain={canTryAgain}
+            onRetry={prepareRetry}
             onNewPayment={form.resetFormAndSession}
+            primaryRef={primaryResultRef}
+            retryRef={retryResultRef}
           />
         ) : (
           <div className="relative">

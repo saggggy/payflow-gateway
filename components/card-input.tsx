@@ -2,13 +2,12 @@
 
 import type { CardType } from "@/types";
 
+import { CheckoutField } from "@/components/checkout-field";
+import { checkoutControlClass } from "@/components/payment-ui-styles";
 import type { PaymentFieldName } from "@/utils/validate-payment-fields";
 import { detectCardType, maxPanLength } from "@/utils/card";
 
-const inputClass =
-  "mt-1.5 block w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20";
-
-interface CardInputProps {
+type CardInputProps = {
   cardholderName: string;
   onCardholderNameChange: (value: string) => void;
   cardNumberFormatted: string;
@@ -21,7 +20,7 @@ interface CardInputProps {
   onBlurField: (field: PaymentFieldName) => void;
   onTouchField: (field: PaymentFieldName) => void;
   cardType: CardType;
-}
+};
 
 export function CardInput({
   cardholderName,
@@ -37,28 +36,29 @@ export function CardInput({
   onTouchField,
   cardType,
 }: CardInputProps) {
-  const cvvLen = cardType === "amex" ? 4 : 3;
-  const panDigits = cardNumberFormatted.replace(/\D/g, "");
-  const panMaxDigits = maxPanLength(detectCardType(panDigits));
+  const cvvLength = cardType === "amex" ? 4 : 3;
+  const digitsTyped = cardNumberFormatted.replace(/\D/g, "");
+  const schemeFromDigits = detectCardType(digitsTyped);
+  const maxDigitsOnCard = maxPanLength(schemeFromDigits);
+  const maxLengthInTheBox = maxDigitsOnCard === 15 ? 17 : 19;
 
   return (
     <div className="space-y-5">
-      <div>
-        <label
-          htmlFor="cardholder-name"
-          className="text-sm font-medium text-zinc-800"
-        >
-          Name on card
-        </label>
+      <CheckoutField
+        label="Name on card"
+        htmlFor="cardholder-name"
+        error={errors.cardholderName}
+        errorId="cardholder-name-error"
+      >
         <input
           id="cardholder-name"
           name="cardholderName"
           autoComplete="cc-name"
-          className={inputClass}
+          className={checkoutControlClass}
           value={cardholderName}
-          onChange={(e) => {
+          onChange={(event) => {
             onTouchField("cardholderName");
-            onCardholderNameChange(e.target.value);
+            onCardholderNameChange(event.target.value);
           }}
           onBlur={() => onBlurField("cardholderName")}
           aria-invalid={errors.cardholderName ? "true" : "false"}
@@ -66,116 +66,82 @@ export function CardInput({
             errors.cardholderName ? "cardholder-name-error" : undefined
           }
         />
-        {errors.cardholderName ? (
-          <p
-            id="cardholder-name-error"
-            className="mt-1.5 text-sm text-rose-600"
-            role="alert"
-          >
-            {errors.cardholderName}
-          </p>
-        ) : null}
-      </div>
+      </CheckoutField>
 
-      <div>
-        <label
-          htmlFor="card-number"
-          className="text-sm font-medium text-zinc-800"
-        >
-          Card number
-        </label>
+      <CheckoutField
+        label="Card number"
+        htmlFor="card-number"
+        error={errors.cardNumber}
+        errorId="card-number-error"
+      >
         <input
           id="card-number"
           name="cardNumber"
           inputMode="numeric"
           autoComplete="cc-number"
-          className={inputClass}
+          className={checkoutControlClass}
           value={cardNumberFormatted}
-          onChange={(e) => {
+          onChange={(event) => {
             onTouchField("cardNumber");
-            onCardNumberChange(e.target.value);
+            onCardNumberChange(event.target.value);
           }}
           onBlur={() => onBlurField("cardNumber")}
-          maxLength={panMaxDigits === 15 ? 17 : 19}
+          maxLength={maxLengthInTheBox}
           aria-invalid={errors.cardNumber ? "true" : "false"}
           aria-describedby={errors.cardNumber ? "card-number-error" : undefined}
         />
-        {errors.cardNumber ? (
-          <p
-            id="card-number-error"
-            className="mt-1.5 text-sm text-rose-600"
-            role="alert"
-          >
-            {errors.cardNumber}
-          </p>
-        ) : null}
-      </div>
+      </CheckoutField>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label
-            htmlFor="card-expiry"
-            className="text-sm font-medium text-zinc-800"
-          >
-            Expires
-          </label>
+        <CheckoutField
+          label="Expires"
+          htmlFor="card-expiry"
+          error={errors.expiry}
+          errorId="card-expiry-error"
+        >
           <input
             id="card-expiry"
             name="cc-exp"
             inputMode="numeric"
             autoComplete="cc-exp"
             placeholder="MM/YY"
-            className={inputClass}
+            className={checkoutControlClass}
             value={expiryRaw}
-            onChange={(e) => {
+            onChange={(event) => {
               onTouchField("expiry");
-              onExpiryChange(e.target.value);
+              onExpiryChange(event.target.value);
             }}
             onBlur={() => onBlurField("expiry")}
             maxLength={5}
             aria-invalid={errors.expiry ? "true" : "false"}
             aria-describedby={errors.expiry ? "card-expiry-error" : undefined}
           />
-          {errors.expiry ? (
-            <p
-              id="card-expiry-error"
-              className="mt-1.5 text-sm text-rose-600"
-              role="alert"
-            >
-              {errors.expiry}
-            </p>
-          ) : null}
-        </div>
-        <div>
-          <label htmlFor="card-cvv" className="text-sm font-medium text-zinc-800">
-            CVV
-          </label>
+        </CheckoutField>
+
+        <CheckoutField
+          label="CVV"
+          htmlFor="card-cvv"
+          error={errors.cvv}
+          errorId="card-cvv-error"
+        >
           <input
             id="card-cvv"
             name="cc-csc"
             inputMode="numeric"
             autoComplete="cc-csc"
-            className={inputClass}
+            className={checkoutControlClass}
             value={cvv}
-            onChange={(e) => {
+            onChange={(event) => {
               onTouchField("cvv");
-              onCvvChange(e.target.value.replace(/\D/g, "").slice(0, cvvLen));
+              const digitsOnly = event.target.value.replace(/\D/g, "");
+              onCvvChange(digitsOnly.slice(0, cvvLength));
             }}
             onBlur={() => onBlurField("cvv")}
-            maxLength={cvvLen}
+            maxLength={cvvLength}
             aria-invalid={errors.cvv ? "true" : "false"}
             aria-describedby={errors.cvv ? "card-cvv-error" : undefined}
           />
-          {errors.cvv ? (
-            <p
-              id="card-cvv-error"
-              className="mt-1.5 text-sm text-rose-600"
-              role="alert"
-            >
-              {errors.cvv}
-            </p>
-          ) : null}
-        </div>
+        </CheckoutField>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import { executePaymentRequest } from "@/utils/execute-payment-request";
 import { formatCardDisplay, stripNonDigits } from "@/utils/card";
 import { formatExpiryInput } from "@/utils/expiry";
 import { mapPayClientResultToLifecycle } from "@/utils/map-pay-result-to-lifecycle";
+import { fieldErrorsForTouchedOnly } from "@/utils/field-errors-for-touched";
 import {
   buildDigitsFromFormattedPan,
   splitExpiryForPayload,
@@ -68,15 +69,10 @@ export function usePaymentForm() {
     [fieldValues],
   );
 
-  const visibleErrors = useMemo(() => {
-    const out: Partial<Record<PaymentFieldName, string>> = {};
-    (Object.keys(touched) as PaymentFieldName[]).forEach((key) => {
-      if (touched[key] && allErrors[key]) {
-        out[key] = allErrors[key];
-      }
-    });
-    return out;
-  }, [allErrors, touched]);
+  const visibleErrors = useMemo(
+    () => fieldErrorsForTouchedOnly(touched, allErrors),
+    [allErrors, touched],
+  );
 
   const isFormValid = useMemo(
     () => Object.keys(allErrors).length === 0,

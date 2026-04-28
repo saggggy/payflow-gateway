@@ -6,7 +6,11 @@ import { TransactionHistorySection } from "@/components/transaction-history-sect
 export function PaymentAppShell() {
   return (
     <div className="min-h-full bg-gradient-to-b from-zinc-100 via-white to-teal-50/40">
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-10 sm:px-6 lg:py-14">
+      <main
+        id="checkout-main"
+        tabIndex={-1}
+        className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-3 py-8 outline-none sm:px-6 sm:py-10 lg:px-8 lg:py-14"
+      >
         <header className="max-w-2xl space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">
             Checkout

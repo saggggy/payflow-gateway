@@ -63,7 +63,7 @@ export function TransactionHistory({
             <button
               type="button"
               onClick={() => onSelect(row.id)}
-              className={`flex w-full flex-col gap-2 px-4 py-4 text-left transition sm:flex-row sm:items-center sm:justify-between ${
+              className={`flex min-h-11 w-full flex-col gap-2 px-4 py-4 text-left transition sm:flex-row sm:items-center sm:justify-between ${
                 isSelected
                   ? "bg-teal-50/80 ring-1 ring-inset ring-teal-200"
                   : "hover:bg-zinc-50"

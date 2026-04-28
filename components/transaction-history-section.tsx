@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { TransactionHistory } from "@/components/transaction-history";
 import { TransactionHistoryDetail } from "@/components/transaction-history-detail";
@@ -9,6 +9,8 @@ import { usePaymentStore } from "@/hooks/use-payment-store";
 
 export function TransactionHistorySection() {
   useTransactionHistorySync();
+
+  const detailRef = useRef<HTMLDivElement>(null);
 
   const rows = usePaymentStore((s) => s.transactions);
   const selectedId = usePaymentStore((s) => s.selectedTransactionId);
@@ -20,6 +22,14 @@ export function TransactionHistorySection() {
     () => rows.find((row) => row.id === selectedId) ?? null,
     [rows, selectedId],
   );
+
+  useEffect(() => {
+    if (!selectedRecord) return;
+    const frame = requestAnimationFrame(() => {
+      detailRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedRecord]);
 
   return (
     <section
@@ -40,13 +50,14 @@ export function TransactionHistorySection() {
         </p>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
+      <div className="grid max-w-full gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
         <TransactionHistory
           rows={rows}
           selectedId={selectedId}
           onSelect={(id) => setSelectedTransactionId(id)}
         />
         <TransactionHistoryDetail
+          ref={detailRef}
           record={selectedRecord}
           onClearSelection={() => setSelectedTransactionId(null)}
         />

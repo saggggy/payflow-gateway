@@ -4,6 +4,8 @@ import type { RefObject } from "react";
 
 import type { PaymentStatus } from "@/types";
 
+import { checkoutTapButtonClass } from "@/components/payment-ui-styles";
+
 type PayErrorSource = "none" | "network" | "gateway" | "timeout";
 
 type PaymentResultPanelProps = {
@@ -113,7 +115,7 @@ export function PaymentResultPanel({
           <button
             ref={retryRef}
             type="button"
-            className="inline-flex w-full items-center justify-center rounded-xl border border-teal-600 bg-white px-4 py-3 text-sm font-semibold text-teal-800 shadow-sm transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 sm:w-auto"
+            className={`${checkoutTapButtonClass} inline-flex w-full items-center justify-center rounded-xl border border-teal-600 bg-white text-sm font-semibold text-teal-800 shadow-sm transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 sm:w-auto`}
             onClick={onRetry}
           >
             Try again
@@ -122,7 +124,7 @@ export function PaymentResultPanel({
         <button
           ref={primaryRef}
           type="button"
-          className="inline-flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 sm:w-auto"
+          className={`${checkoutTapButtonClass} inline-flex w-full items-center justify-center rounded-xl bg-zinc-900 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 sm:w-auto`}
           onClick={onNewPayment}
         >
           New payment

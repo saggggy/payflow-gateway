@@ -8,3 +8,13 @@
 html {
   color-scheme: light;
 }
+
+/**
+ * People who ask the OS to calm animations still deserve feedback —
+ * we only strip spinners, not every transition in the tree.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .payflow-spinner {
+    animation: none;
+  }
+}

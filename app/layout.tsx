@@ -27,7 +27,15 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="relative min-h-full flex flex-col">
+        <a
+          href="#checkout-main"
+          className="absolute -left-[10000px] top-4 z-[100] rounded-lg bg-zinc-900 px-4 py-3 text-sm font-medium text-white shadow-lg outline-none ring-offset-2 transition-[left,box-shadow] focus:left-4 focus:ring-2 focus:ring-teal-400"
+        >
+          Skip to checkout
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { CardInput } from "@/components/card-input";
 import { CardPreview } from "@/components/card-preview";
 import { CurrencyAmountFields } from "@/components/currency-amount-fields";
 import { PaymentResultPanel } from "@/components/payment-result-panel";
 import { ProcessingOverlay } from "@/components/processing-overlay";
+import { checkoutTapButtonClass } from "@/components/payment-ui-styles";
 import { usePaymentForm } from "@/hooks/use-payment-form";
 import { usePaymentStore } from "@/hooks/use-payment-store";
 import { detectCardType } from "@/utils/card";
@@ -19,8 +20,12 @@ function hasCompleteExpiry(expiryRaw: string) {
 export function PaymentForm() {
   const primaryResultRef = useRef<HTMLButtonElement>(null);
   const retryResultRef = useRef<HTMLButtonElement>(null);
+  const processingRegionRef = useRef<HTMLDivElement>(null);
+  const checkoutHeadingRef = useRef<HTMLHeadingElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
 
   const form = usePaymentForm();
+  const { resetFormAndSession } = form;
   const payAttemptsUsed = usePaymentStore((s) => s.payAttemptsUsed);
   const prepareRetry = usePaymentStore((s) => s.prepareRetry);
 
@@ -38,6 +43,20 @@ export function PaymentForm() {
     (form.lifecycleStatus === "failed" || form.lifecycleStatus === "timeout") &&
     payAttemptsUsed < MAX_PAY_ATTEMPTS_PER_TRANSACTION;
 
+  const handleRetry = useCallback(() => {
+    prepareRetry();
+    requestAnimationFrame(() => {
+      submitButtonRef.current?.focus();
+    });
+  }, [prepareRetry]);
+
+  const handleNewPayment = useCallback(() => {
+    resetFormAndSession();
+    requestAnimationFrame(() => {
+      checkoutHeadingRef.current?.focus();
+    });
+  }, [resetFormAndSession]);
+
   useEffect(() => {
     if (!isFinished) return;
     const frame = requestAnimationFrame(() => {
@@ -50,8 +69,16 @@ export function PaymentForm() {
     return () => cancelAnimationFrame(frame);
   }, [isFinished, canTryAgain, form.lifecycleStatus]);
 
+  useEffect(() => {
+    if (form.lifecycleStatus !== "processing") return;
+    const frame = requestAnimationFrame(() => {
+      processingRegionRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [form.lifecycleStatus]);
+
   return (
-    <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] lg:gap-14">
+    <div className="grid w-full max-w-full min-w-0 items-start gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(260px,420px)] lg:gap-14">
       <div className="relative min-w-0">
         {isFinished ? (
           <PaymentResultPanel
@@ -68,25 +95,34 @@ export function PaymentForm() {
             attemptsUsed={payAttemptsUsed}
             maxAttempts={MAX_PAY_ATTEMPTS_PER_TRANSACTION}
             canTryAgain={canTryAgain}
-            onRetry={prepareRetry}
-            onNewPayment={form.resetFormAndSession}
+            onRetry={handleRetry}
+            onNewPayment={handleNewPayment}
             primaryRef={primaryResultRef}
             retryRef={retryResultRef}
           />
         ) : (
           <div className="relative">
-            {form.lifecycleStatus === "processing" ? <ProcessingOverlay /> : null}
+            {form.lifecycleStatus === "processing" ? (
+              <ProcessingOverlay ref={processingRegionRef} />
+            ) : null}
 
             <form
-              className="space-y-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-xl shadow-zinc-900/5 sm:p-8"
+              className="space-y-8 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-xl shadow-zinc-900/5 sm:p-8"
               onSubmit={(event) => {
                 event.preventDefault();
                 void form.handleSubmit();
               }}
               noValidate
+              aria-labelledby="checkout-form-title"
+              aria-busy={form.isSubmitting}
             >
               <header>
-                <h2 className="text-lg font-semibold text-zinc-900">
+                <h2
+                  ref={checkoutHeadingRef}
+                  id="checkout-form-title"
+                  tabIndex={-1}
+                  className="text-lg font-semibold tracking-tight text-zinc-900 outline-none ring-teal-500/40 focus-visible:ring-2"
+                >
                   Payment details
                 </h2>
                 <p className="mt-1 text-sm text-zinc-500">
@@ -129,13 +165,14 @@ export function PaymentForm() {
               />
 
               <button
+                ref={submitButtonRef}
                 type="submit"
                 disabled={
                   !form.isFormValid ||
                   form.isSubmitting ||
                   form.lifecycleStatus !== "idle"
                 }
-                className="w-full rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-900/15 transition enabled:hover:from-teal-500 enabled:hover:to-emerald-500 enabled:focus-visible:outline enabled:focus-visible:outline-2 enabled:focus-visible:outline-offset-2 enabled:focus-visible:outline-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`${checkoutTapButtonClass} w-full rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 text-sm font-semibold text-white shadow-lg shadow-teal-900/15 transition enabled:hover:from-teal-500 enabled:hover:to-emerald-500 enabled:focus-visible:outline enabled:focus-visible:outline-2 enabled:focus-visible:outline-offset-2 enabled:focus-visible:outline-teal-700 disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 Pay securely
               </button>
@@ -144,18 +181,26 @@ export function PaymentForm() {
         )}
       </div>
 
-      <aside className="min-w-0 lg:sticky lg:top-8">
-        <p className="mb-4 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 lg:text-left">
+      <aside
+        className="min-w-0 lg:sticky lg:top-8"
+        aria-labelledby="card-preview-label"
+      >
+        <p
+          id="card-preview-label"
+          className="mb-4 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 lg:text-left"
+        >
           Live preview
         </p>
-        <CardPreview
-          cardholderName={form.cardholderName}
-          cardDigits={form.cardNumberDigits}
-          expiryLabel={expiryForPreview}
-          cardType={schemeOnCard}
-          amount={form.amount}
-          currency={form.currency}
-        />
+        <div className="mx-auto w-full max-w-md lg:mx-0">
+          <CardPreview
+            cardholderName={form.cardholderName}
+            cardDigits={form.cardNumberDigits}
+            expiryLabel={expiryForPreview}
+            cardType={schemeOnCard}
+            amount={form.amount}
+            currency={form.currency}
+          />
+        </div>
       </aside>
     </div>
   );
